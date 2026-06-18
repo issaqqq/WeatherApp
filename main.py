@@ -1,96 +1,69 @@
-import sys
+import tkinter as tk
+from tkinter import messagebox
 import requests
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel,
-    QLineEdit, QPushButton, QVBoxLayout
-)
-from PyQt5.QtCore import Qt
 
 
-class WeatherApp(QWidget):
-    def __init__(self):
-        super().__init__()
+class WeatherApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Weather App")
+        self.root.geometry("500x400")
+        self.root.resizable(False, False)
 
-        self.city_label = QLabel("Enter city name:", self)
-        self.city_input = QLineEdit(self)
-        self.get_weather_button = QPushButton("Get Weather", self)
+        # Title
+        self.city_label = tk.Label(
+            root,
+            text="Enter City Name:",
+            font=("Calibri", 20, "italic")
+        )
+        self.city_label.pack(pady=10)
 
-        self.temperature_label = QLabel(self)
-        self.emoji_label = QLabel(self)
-        self.description_label = QLabel(self)
+        # Input
+        self.city_entry = tk.Entry(
+            root,
+            font=("Calibri", 18),
+            justify="center"
+        )
+        self.city_entry.pack(pady=10)
 
-        self.initUI()
+        # Button
+        self.weather_button = tk.Button(
+            root,
+            text="Get Weather",
+            font=("Calibri", 16, "bold"),
+            command=self.get_weather
+        )
+        self.weather_button.pack(pady=10)
 
-    def initUI(self):
-        self.setWindowTitle("Weather App")
-        self.resize(600, 500)
+        # Output Labels
+        self.temperature_label = tk.Label(
+            root,
+            font=("Calibri", 40)
+        )
+        self.temperature_label.pack(pady=10)
 
-        vbox = QVBoxLayout()
+        self.emoji_label = tk.Label(
+            root,
+            font=("Segoe UI Emoji", 60)
+        )
+        self.emoji_label.pack()
 
-        vbox.addWidget(self.city_label)
-        vbox.addWidget(self.city_input)
-        vbox.addWidget(self.get_weather_button)
-        vbox.addWidget(self.temperature_label)
-        vbox.addWidget(self.emoji_label)
-        vbox.addWidget(self.description_label)
-
-        self.setLayout(vbox)
-
-        self.city_label.setAlignment(Qt.AlignCenter)
-        self.city_input.setAlignment(Qt.AlignCenter)
-        self.temperature_label.setAlignment(Qt.AlignCenter)
-        self.emoji_label.setAlignment(Qt.AlignCenter)
-        self.description_label.setAlignment(Qt.AlignCenter)
-
-        self.city_label.setObjectName("city_label")
-        self.city_input.setObjectName("city_input")
-        self.get_weather_button.setObjectName("get_weather_button")
-        self.temperature_label.setObjectName("temperature_label")
-        self.emoji_label.setObjectName("emoji_label")
-        self.description_label.setObjectName("description_label")
-
-        self.setStyleSheet("""
-            QLabel, QPushButton{
-                font-family: Calibri;
-            }
-
-            QLabel#city_label{
-                font-size: 40px;
-                font-style: italic;
-            }
-
-            QLineEdit#city_input{
-                font-size: 40px;
-            }
-
-            QPushButton#get_weather_button{
-                font-size: 30px;
-                font-weight: bold;
-            }
-
-            QLabel#temperature_label{
-                font-size: 75px;
-            }
-
-            QLabel#emoji_label{
-                font-size: 100px;
-                font-family: "Segoe UI Emoji";
-            }
-
-            QLabel#description_label{
-                font-size: 50px;
-            }
-        """)
-
-        self.get_weather_button.clicked.connect(self.get_weather)
+        self.description_label = tk.Label(
+            root,
+            font=("Calibri", 24)
+        )
+        self.description_label.pack(pady=10)
 
     def get_weather(self):
         api_key = "YOUR_API_KEY_HERE"
 
-        city = self.city_input.text().strip()
+        city = self.city_entry.get().strip()
 
         if not city:
-            self.display_error("Please enter a city name")
+            messagebox.showwarning(
+                "Input Error",
+                "Please enter a city name."
+            )
             return
 
         url = (
@@ -100,53 +73,51 @@ class WeatherApp(QWidget):
 
         try:
             response = requests.get(url, timeout=10)
-
             data = response.json()
 
             if response.status_code == 200:
                 self.display_weather(data)
             else:
-                message = data.get("message", "Unknown error")
-                self.display_error(message.title())
+                message = data.get("message", "Unknown Error")
+                messagebox.showerror(
+                    "Error",
+                    message.title()
+                )
 
         except requests.exceptions.ConnectionError:
-            self.display_error(
-                "Connection Error:\nCheck your internet connection"
+            messagebox.showerror(
+                "Connection Error",
+                "Check your internet connection."
             )
 
         except requests.exceptions.Timeout:
-            self.display_error(
-                "Timeout Error:\nThe request timed out"
-            )
-
-        except requests.exceptions.TooManyRedirects:
-            self.display_error(
-                "Too Many Redirects:\nCheck the URL"
+            messagebox.showerror(
+                "Timeout Error",
+                "The request timed out."
             )
 
         except requests.exceptions.RequestException as e:
-            self.display_error(
-                f"Request Error:\n{e}"
+            messagebox.showerror(
+                "Request Error",
+                str(e)
             )
 
-    def display_error(self, message):
-        self.temperature_label.setStyleSheet("font-size: 30px;")
-        self.temperature_label.setText(message)
-        self.emoji_label.clear()
-        self.description_label.clear()
-
     def display_weather(self, data):
-        self.temperature_label.setStyleSheet("font-size: 75px;")
-
         temperature = data["main"]["temp"]
         weather_id = data["weather"][0]["id"]
         description = data["weather"][0]["description"].title()
 
-        self.temperature_label.setText(f"{temperature:.0f}°C")
-        self.emoji_label.setText(
-            self.get_weather_emoji(weather_id)
+        self.temperature_label.config(
+            text=f"{temperature:.0f}°C"
         )
-        self.description_label.setText(description)
+
+        self.emoji_label.config(
+            text=self.get_weather_emoji(weather_id)
+        )
+
+        self.description_label.config(
+            text=description
+        )
 
     @staticmethod
     def get_weather_emoji(weather_id):
@@ -175,9 +146,6 @@ class WeatherApp(QWidget):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    weather_app = WeatherApp()
-    weather_app.show()
-
-    sys.exit(app.exec_())
+    root = tk.Tk()
+    app = WeatherApp(root)
+    root.mainloop()
